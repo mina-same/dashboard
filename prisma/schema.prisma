@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  userId     String
+  billboards Billboard[] @relation("StoreToBillboard")
+  categories Category[]  @relation("StoreToCategory")
+  products   Product[]   @relation("StoreToProduct")
+  orders     Order[]     @relation("StoreToOrder")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Billboard {
+  id                String     @id @default(auto()) @map("_id") @db.ObjectId
+  storeId           String     @db.ObjectId
+  store             Store      @relation("StoreToBillboard", fields: [storeId], references: [id])
+  categories        Category[]
+  label             String
+  imageUrl          String
+  isBillboardActive Boolean    @default(false) //if the billboard is active it will work as billboard if not it will work aa a category image
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([storeId])
+}
+
+model Category {
+  id                  String       @id @default(auto()) @map("_id") @db.ObjectId
+  storeId             String       @db.ObjectId
+  store               Store        @relation("StoreToCategory", fields: [storeId], references: [id])
+  billboardId         String       @db.ObjectId
+  billboard           Billboard    @relation(fields: [billboardId], references: [id])
+  name                String
+  categoryDescription String       @default("")
+  fields              Field[]
+  categoryType        CategoryType @default(SHIPPING_LIVE_PROGRAMS) // Default value set to one of the enum options
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  products            Product[]    @relation("CategoryToProduct")
+
+  @@index([storeId])
+  @@index([billboardId])
+}
+
+enum CategoryType {
+  SHIPPING_LIVE_PROGRAMS
+  SHIPPING_GAMES
+  SHIPPING_GIFT_CARDS
+  SHIPPING_GAMES_CARDS
+  SHIPPING_DIGITAL_SUBSCRIPTIONS
+}
+
+model Field {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId String       @db.ObjectId
+  category   Category     @relation(fields: [categoryId], references: [id])
+  fieldName  String
+  fieldType  String // Generic type identifier for the field
+  options    String[] // Array of options for checklist fields
+  OrderField OrderField[]
+
+  @@index([categoryId])
+}
+
+model Product {
+  id                 String      @id @default(auto()) @map("_id") @db.ObjectId
+  storeId            String      @db.ObjectId
+  store              Store       @relation("StoreToProduct", fields: [storeId], references: [id])
+  categoryId         String      @db.ObjectId
+  category           Category    @relation("CategoryToProduct", fields: [categoryId], references: [id])
+  name               String
+  price              Float
+  productDescription String      @default("")
+  isFeatured         Boolean     @default(false)
+  isArchived         Boolean     @default(false)
+  images             Image[]
+  orderItems         OrderItem[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([storeId])
+  @@index([categoryId])
+}
+
+model Image {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Order {
+  id         String      @id @default(auto()) @map("_id") @db.ObjectId
+  storeId    String      @db.ObjectId
+  store      Store       @relation("StoreToOrder", fields: [storeId], references: [id])
+  orderItems OrderItem[]
+  isPaid     Boolean     @default(false)
+  phone      String      @default("")
+  address    String      @default("")
+  status     OrderStatus @default(ORDERED) // New status field
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([storeId])
+}
+
+model OrderItem {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String       @db.ObjectId
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String       @db.ObjectId
+  product    Product      @relation(fields: [productId], references: [id])
+  OrderField OrderField[]
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderField {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  orderItemId String    @db.ObjectId
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  field       Field     @relation(fields: [fieldId], references: [id])
+  fieldId     String    @db.ObjectId()
+  fieldValue  String
+
+  @@index([orderItemId])
+}
+
+enum OrderStatus {
+  ORDERED
+  PROCESSING
+  DONE
+}
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "mongodb"
+//   url      = env("DATABASE_URL")
+// }
+
+// model Store {
+//   id         String      @id @default(auto()) @map("_id") @db.ObjectId
+//   name       String
+//   userId     String
+//   billboards Billboard[] @relation("StoreToBillboard")
+//   categories Category[]  @relation("StoreToCategory")
+//   products   Product[]   @relation("StoreToProduct")
+//   orders     Order[]     @relation("StoreToOrder")
+//   createdAt  DateTime    @default(now())
+//   updatedAt  DateTime    @updatedAt
+// }
+
+// model Billboard {
+//   id         String     @id @default(auto()) @map("_id") @db.ObjectId
+//   storeId    String     @db.ObjectId
+//   store      Store      @relation("StoreToBillboard", fields: [storeId], references: [id])
+//   categories Category[]
+//   label      String
+//   imageUrl   String
+//   createdAt  DateTime   @default(now())
+//   updatedAt  DateTime   @updatedAt
+
+//   @@index([storeId])
+// }
+
+// model Category {
+//   id                    String    @id @default(auto()) @map("_id") @db.ObjectId
+//   storeId               String    @db.ObjectId
+//   store                 Store     @relation("StoreToCategory", fields: [storeId], references: [id])
+//   billboardId           String    @db.ObjectId
+//   billboard             Billboard @relation(fields: [billboardId], references: [id])
+//   name                  String
+//   categoryDescription   String    @default("")
+//   createdAt             DateTime  @default(now())
+//   updatedAt             DateTime  @updatedAt
+//   products              Product[] @relation("CategoryToProduct")
+//   fields                Field[]   // Relation to dynamic fields
+
+//   @@index([storeId])
+//   @@index([billboardId])
+// }
+
+// model Field {
+//   id         String   @id @default(auto()) @map("_id") @db.ObjectId
+//   categoryId String   @db.ObjectId
+//   category   Category @relation(fields: [categoryId], references: [id])
+//   fieldName  String
+//   fieldType  String // Generic type identifier for the field
+//   options    String[] // Array of options for checklist fields
+
+//   @@index([categoryId])
+// }
+
+// model Product {
+//   id                  String      @id @default(auto()) @map("_id") @db.ObjectId
+//   storeId             String      @db.ObjectId
+//   store               Store       @relation("StoreToProduct", fields: [storeId], references: [id])
+//   categoryId         String      @db.ObjectId
+//   category           Category    @relation("CategoryToProduct", fields: [categoryId], references: [id])
+//   name                String
+//   price               Float
+//   productDescription  String      @default("")
+//   isFeatured          Boolean     @default(false)
+//   isArchived          Boolean     @default(false)
+//   images              Image[]
+//   orderItems          OrderItem[]
+//   productReviews      ProductReview[] // New relation for product reviews
+//   userReviews         UserReview[]    // New relation for user reviews
+//   createdAt           DateTime    @default(now())
+//   updatedAt           DateTime    @updatedAt
+
+//   @@index([storeId])
+//   @@index([categoryId])
+// }
+
+// model Image {
+//   id        String   @id @default(auto()) @map("_id") @db.ObjectId
+//   productId String   @db.ObjectId
+//   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   url       String
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   @@index([productId])
+// }
+
+// model Order {
+//   id         String      @id @default(auto()) @map("_id") @db.ObjectId
+//   storeId    String      @db.ObjectId
+//   store      Store       @relation("StoreToOrder", fields: [storeId], references: [id])
+//   orderItems OrderItem[]
+//   isPaid     Boolean     @default(false)
+//   phone      String      @default("")
+//   address    String      @default("")
+//   status     OrderStatus @default(ORDERED) // New status field
+//   createdAt  DateTime    @default(now())
+//   updatedAt  DateTime    @updatedAt
+
+//   @@index([storeId])
+// }
+
+// model OrderItem {
+//   id        String  @id @default(auto()) @map("_id") @db.ObjectId
+//   orderId   String  @db.ObjectId
+//   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+//   productId String  @db.ObjectId
+//   product   Product @relation(fields: [productId], references: [id])
+//   OrderFields OrderField[]
+
+//   @@index([orderId])
+//   @@index([productId])
+// }
+
+//   model OrderField {
+//   id         String   @id @default(auto()) @map("_id") @db.ObjectId
+//   orderItemId String  @db.ObjectId
+//   orderItem  OrderItem @relation(fields: [orderItemId], references: [id])
+//   fieldName  String
+//   fieldValue String
+
+//   @@index([orderItemId])
+// }
+
+// model ProductReview { // Model for product ratings
+//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+//   productId   String   @db.ObjectId
+//   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   rating      Int      // Rating out of five
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+
+//   @@index([productId])
+// }
+
+// model UserReview { // Model for user comments and ratings
+//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+//   productId   String   @db.ObjectId
+//   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+//   userId      String   // Assuming you have a User model to link
+//   rating      Int      // Rating out of five
+//   comment     String   @default("")
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+
+//   @@index([productId])
+// }
+
+// // Enum for order status
+// enum OrderStatus {
+//   ORDERED
+//   PROCESSING
+//   DONE
+// }
